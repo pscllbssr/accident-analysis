@@ -1,0 +1,50 @@
+---
+title: "Analysis"
+output: html_document
+date: "2023-01-30"
+---
+
+# Loading the datasets
+
+## accidents
+
+```{r setup}
+library(data.table)
+
+accidents_df <- data.frame(fread("data/RoadTrafficAccidentLocations.csv"))
+columns <- c("AccidentUID", "AccidentType", "AccidentType_en", "AccidentSeverityCategory", "AccidentSeverityCategory_en", "AccidentInvolvingPedestrian", "AccidentInvolvingBicycle", "AccidentInvolvingMotorcycle", "RoadType", "RoadType_en", "AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "CantonCode", "MunicipalityCode", "AccidentYear", "AccidentMonth", "AccidentWeekDay", "AccidentHour")
+accidents_df <- accidents_df[columns]
+head(accidents_df)
+```
+
+## Temperature stations
+
+```{r cars}
+weather_stations <- read.csv("data/liste-download-nbcn-d.csv", sep = ';', encoding = "latin1", nrows = 29)
+weather_stations
+```
+
+## Temperature
+
+```{r weather}
+download_urls <- weather_stations$URL.Previous.years..verified.data.
+
+#read.table(download_urls[1], sep = ';', nrows = 20, header = TRUE)
+temp_data <- data.frame()
+
+for(url in download_urls){
+  df <- read.table(url, sep = ';', nrows = 20, header = TRUE)
+  temp_data <- rbind(temp_data, df)
+
+}
+
+temp_data
+````
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
