@@ -8,6 +8,9 @@ date: "2023-01-30"
 
 ## accidents
 
+Load the accidents dataset, already downloaded. 
+Source: https://data.geo.admin.ch/ch.astra.unfaelle-personenschaeden_alle/
+
 ```{r setup}
 library(data.table)
 
@@ -19,32 +22,106 @@ head(accidents_df)
 
 ## Temperature stations
 
-```{r cars}
+To merge with weather info we load daily measurements from the swiss climate network. First we get the stations...
+
+```{r weather_stations}
 weather_stations <- read.csv("data/liste-download-nbcn-d.csv", sep = ';', encoding = "latin1", nrows = 29)
-weather_stations
+head(weather_stations)
 ```
 
 ## Temperature
 
-```{r weather}
+...and then we load the time series for every station.
+
+```{r weather, echo=FALSE}
+library(readr)
+
+# get vector of download-URLs
 download_urls <- weather_stations$URL.Previous.years..verified.data.
 
-#read.table(download_urls[1], sep = ';', nrows = 20, header = TRUE)
+# set up empty data frame
 temp_data <- data.frame()
 
+# loop over urls and dowload data for every station
 for(url in download_urls){
-  df <- read.table(url, sep = ';', nrows = 20, header = TRUE)
+  df <- read_delim(url, delim= ';', col_select = c('date', "station/location", "tre200d0", "tre200dx", "tre200dn"))
   temp_data <- rbind(temp_data, df)
 
 }
 
-temp_data
+head(temp_data)
 ````
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+Convert into usable data types
+```{r change_data_types}
+library(lubridate)
+temp_data$date <- ymd(temp_data$date)
+temp_data$tre200dn <- as.numeric(temp_data$tre200dn)
+temp_data$tre200dx <- as.numeric(temp_data$tre200dx)
+temp_data$tre200d0 <- as.numeric(temp_data$tre200d0)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# Analysis
+
+load libs
+```{r, echo=FALSE}
+library(ggplot2)
+library(magrittr)
+library(tidyverse)
+library(dplyr)
+```
+
+```{r, echo=FALSE}
+
+accidents_df %>% 
+  group_by(AccidentYear) %>% 
+  summarise(Count = n()) %>% 
+  ggplot(mapping = aes(x = AccidentYear, y = Count, fill = AccidentYear)) +
+  geom_bar(stat = "identity") + 
+  labs(title = "Accidents per year",
+       x = "Year",
+       y = "Nr. of accidents")
+  
+```
+
+```{r, echo=FALSE}
+
+accidents_df %>% 
+  group_by(AccidentMonth) %>% 
+  summarise(Count = n()) %>% 
+  ggplot(mapping = aes(x = factor(AccidentMonth), y = Count, fill = AccidentMonth)) +
+  geom_bar(stat = "identity") + 
+  scale_x_discrete() +
+  labs(title = "Most accidents happen in summer",
+       x = "Month",
+       y = "Nr. of accidents")
+  
+```
+
+
+Analyse Weekdays/Hours
+
+````{r heatmap_of_accidents, echo = FALSE}
+
+accidents_df[,c("AccidentUID", "AccidentWeekDay", "AccidentHour")] %>%
+  group_by(AccidentWeekDay, AccidentHour) %>% 
+  summarise(Count = n()) %>% 
+  ggplot(aes(x = AccidentWeekDay, y = AccidentHour, fill = Count)) +
+    geom_raster() +
+    labs(x = 'Weekday', y = "Hour", title = "Most Accidents happen on weekdays in the evening") +
+    theme_minimal()
+
+````
+
+````{r map_of_accidents, echo = FALSE}
+
+accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N")] %>%
+  ggplot(aes(x = AccidentLocation_CHLV95_E, y = AccidentLocation_CHLV95_N)) +
+    geom_point(alpha = 0.1) +
+    labs(x = 'E', y = "N", title = "Map of accidents") +
+    theme_minimal()
+
+````
+
+Thanks, bye!
