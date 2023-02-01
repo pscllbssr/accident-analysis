@@ -1,5 +1,6 @@
 ---
 title: "Analysis"
+author: ""
 output: html_document
 date: "2023-01-30"
 ---
@@ -98,7 +99,27 @@ accidents_df %>%
        y = "Nr. of accidents")
   
 ```
+Maybe because tourists travel through switzerland in summer? have a look at accidents on main roads in summer
 
+```{r }
+unique(accidents_df$RoadType_en)
+```
+
+```{r, echo=FALSE}
+
+accidents_df %>% 
+  group_by(AccidentMonth, RoadType_en) %>% 
+  summarise(Count = n()) %>% 
+  arrange(.,desc(Count)) %>% 
+  ggplot(mapping = aes(x = factor(AccidentMonth), y = Count)) +
+  geom_bar(stat = "identity") +
+  facet_wrap( ~ RoadType_en) +
+  scale_x_discrete() +
+  labs(title = "Accidents per road type during the year",
+       x = "Month",
+       y = "Nr. of accidents")
+  
+```
 
 Analyse Weekdays/Hours
 
@@ -107,7 +128,7 @@ Analyse Weekdays/Hours
 accidents_df[,c("AccidentUID", "AccidentWeekDay", "AccidentHour")] %>%
   group_by(AccidentWeekDay, AccidentHour) %>% 
   summarise(Count = n()) %>% 
-  ggplot(aes(x = AccidentWeekDay, y = AccidentHour, fill = Count)) +
+  ggplot(aes(x = AccidentHour, y = AccidentWeekDay, fill = Count)) +
     geom_raster() +
     labs(x = 'Weekday', y = "Hour", title = "Most Accidents happen on weekdays in the evening") +
     theme_minimal()
@@ -116,12 +137,35 @@ accidents_df[,c("AccidentUID", "AccidentWeekDay", "AccidentHour")] %>%
 
 ````{r map_of_accidents, echo = FALSE}
 
-accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N")] %>%
-  ggplot(aes(x = AccidentLocation_CHLV95_E, y = AccidentLocation_CHLV95_N)) +
+accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "RoadType_en")] %>%
+  ggplot(aes(x = AccidentLocation_CHLV95_E, y = AccidentLocation_CHLV95_N, colour = RoadType_en)) +
     geom_point(alpha = 0.1) +
     labs(x = 'E', y = "N", title = "Map of accidents") +
-    theme_minimal()
+    theme_minimal() +
+    guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+    coord_fixed()
 
 ````
 
+
+````{r map_of_accidents, echo = FALSE}
+
+accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "AccidentWeekDay")] %>%
+  ggplot(aes(x = AccidentLocation_CHLV95_E, y = AccidentLocation_CHLV95_N, colour = AccidentWeekDay %in% c("aw406", "aw407"))) +
+    geom_point(alpha = 0.1) +
+    labs(x = 'E', y = "N", title = "Map of accidents", colour = "Day") +
+    scale_color_discrete(labels=c('Weekday', 'Weekend')) +
+    theme_minimal() +
+    guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+    coord_fixed()
+
+````
+
+lorem ipsum
+
+`````{r }
+unique(accidents_df$AccidentWeekDay)
+
+
+`````
 Thanks, bye!
