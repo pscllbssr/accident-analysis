@@ -161,6 +161,19 @@ accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "Accid
 
 ````
 
+````{r map_of_accidents_pedestrians, echo = FALSE}
+accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "AccidentInvolvingPedestrian")] %>%
+  ggplot(aes(x = AccidentLocation_CHLV95_E, 
+             y = AccidentLocation_CHLV95_N, 
+             colour = AccidentInvolvingPedestrian)) +
+    geom_point(alpha = 0.1) +
+    labs(x = 'E', y = "N", title = "Map of accidents", colour = "Pedestrian") +
+    theme_minimal() +
+    guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+    coord_fixed()
+
+````
+
 lorem ipsum
 
 `````{r }
