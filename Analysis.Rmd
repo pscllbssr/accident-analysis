@@ -16,7 +16,7 @@ Source: https://data.geo.admin.ch/ch.astra.unfaelle-personenschaeden_alle/
 library(data.table)
 
 accidents_df <- data.frame(fread("data/RoadTrafficAccidentLocations.csv"))
-columns <- c("AccidentUID", "AccidentType", "AccidentType_en", "AccidentSeverityCategory", "AccidentSeverityCategory_en", "AccidentInvolvingPedestrian", "AccidentInvolvingBicycle", "AccidentInvolvingMotorcycle", "RoadType", "RoadType_en", "AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "CantonCode", "MunicipalityCode", "AccidentYear", "AccidentMonth", "AccidentWeekDay", "AccidentHour")
+columns <- c("AccidentUID", "AccidentType", "AccidentType_en", "AccidentSeverityCategory", "AccidentSeverityCategory_en", "AccidentInvolvingPedestrian", "AccidentInvolvingBicycle", "AccidentInvolvingMotorcycle", "RoadType", "RoadType_en", "AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "CantonCode", "MunicipalityCode", "AccidentYear", "AccidentMonth", "AccidentWeekDay", "AccidentHour", "AccidentWeekDay_en")
 accidents_df <- accidents_df[columns]
 head(accidents_df)
 ```
@@ -91,10 +91,11 @@ accidents_df %>%
 accidents_df %>% 
   group_by(AccidentMonth) %>% 
   summarise(Count = n()) %>% 
-  ggplot(mapping = aes(x = factor(AccidentMonth), y = Count, fill = AccidentMonth)) +
+  ggplot(mapping = aes(x = factor(AccidentMonth), y = Count, fill = Count)) +
   geom_bar(stat = "identity") + 
+  scale_fill_continuous(type = "gradient", trans = "reverse") +
   scale_x_discrete() +
-  labs(title = "Most accidents happen in summer",
+  labs(title = "Most accidents happen in the summer",
        x = "Month",
        y = "Nr. of accidents")
   
@@ -128,9 +129,12 @@ Analyse Weekdays/Hours
 accidents_df[,c("AccidentUID", "AccidentWeekDay", "AccidentHour")] %>%
   group_by(AccidentWeekDay, AccidentHour) %>% 
   summarise(Count = n()) %>% 
-  ggplot(aes(x = AccidentHour, y = AccidentWeekDay, fill = Count)) +
+  mutate(AccidentWeekDay_f=factor(x = AccidentWeekDay,levels = rev(c("aw401", "aw402", "aw403", "aw404", "aw405", "aw406", "aw407"
+)), labels = rev(c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")))) %>% 
+  # pull(AccidentWeekDay_f) %>% levels() %>% dput
+  ggplot(aes(x = AccidentHour, y = AccidentWeekDay_f, fill = Count)) +
     geom_raster() +
-    labs(x = 'Weekday', y = "Hour", title = "Most Accidents happen on weekdays in the evening") +
+    labs(x = 'Hour', y = "Day of  the Week", title = "Most Accidents happen on weekdays in the evening") +
     theme_minimal()
 
 ````
@@ -164,7 +168,7 @@ accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "Accid
 lorem ipsum
 
 `````{r }
-unique(accidents_df$AccidentWeekDay)
+sort(unique(accidents_df$AccidentWeekDay), decreasing = FALSE)
 
 
 `````
