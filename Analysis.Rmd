@@ -16,51 +16,15 @@ Source: https://data.geo.admin.ch/ch.astra.unfaelle-personenschaeden_alle/
 library(data.table)
 
 accidents_df <- data.frame(fread("data/RoadTrafficAccidentLocations.csv"))
-columns <- c("AccidentUID", "AccidentType", "AccidentType_en", "AccidentSeverityCategory", "AccidentSeverityCategory_en", "AccidentInvolvingPedestrian", "AccidentInvolvingBicycle", "AccidentInvolvingMotorcycle", "RoadType", "RoadType_en", "AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "CantonCode", "MunicipalityCode", "AccidentYear", "AccidentMonth", "AccidentWeekDay", "AccidentHour")
+columns <- c("AccidentUID", "AccidentType", "AccidentType_en", "AccidentSeverityCategory", "AccidentSeverityCategory_en", "AccidentInvolvingPedestrian", "AccidentInvolvingBicycle", "AccidentInvolvingMotorcycle", "RoadType", "RoadType_en", "AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "CantonCode", "MunicipalityCode", "AccidentYear", "AccidentMonth", "AccidentWeekDay", "AccidentHour", "AccidentWeekDay_en")
 accidents_df <- accidents_df[columns]
 head(accidents_df)
 ```
 
-## Temperature stations
-
-To merge with weather info we load daily measurements from the swiss climate network. First we get the stations...
-
-```{r weather_stations}
-weather_stations <- read.csv("data/liste-download-nbcn-d.csv", sep = ';', encoding = "latin1", nrows = 29)
-head(weather_stations)
-```
-
-## Temperature
-
-...and then we load the time series for every station.
-
-```{r weather, echo=FALSE}
-library(readr)
-
-# get vector of download-URLs
-download_urls <- weather_stations$URL.Previous.years..verified.data.
-
-# set up empty data frame
-temp_data <- data.frame()
-
-# loop over urls and dowload data for every station
-for(url in download_urls){
-  df <- read_delim(url, delim= ';', col_select = c('date', "station/location", "tre200d0", "tre200dx", "tre200dn"))
-  temp_data <- rbind(temp_data, df)
-
-}
-
-head(temp_data)
-````
 
 
-Convert into usable data types
-```{r change_data_types}
-library(lubridate)
-temp_data$date <- ymd(temp_data$date)
-temp_data$tre200dn <- as.numeric(temp_data$tre200dn)
-temp_data$tre200dx <- as.numeric(temp_data$tre200dx)
-temp_data$tre200d0 <- as.numeric(temp_data$tre200d0)
+
+
 ```
 
 # Analysis
@@ -91,10 +55,11 @@ accidents_df %>%
 accidents_df %>% 
   group_by(AccidentMonth) %>% 
   summarise(Count = n()) %>% 
-  ggplot(mapping = aes(x = factor(AccidentMonth), y = Count, fill = AccidentMonth)) +
+  ggplot(mapping = aes(x = factor(AccidentMonth), y = Count, fill = Count)) +
   geom_bar(stat = "identity") + 
+  scale_fill_continuous(type = "gradient", trans = "reverse") +
   scale_x_discrete() +
-  labs(title = "Most accidents happen in summer",
+  labs(title = "Most accidents happen in the summer",
        x = "Month",
        y = "Nr. of accidents")
   
@@ -128,9 +93,12 @@ Analyse Weekdays/Hours
 accidents_df[,c("AccidentUID", "AccidentWeekDay", "AccidentHour")] %>%
   group_by(AccidentWeekDay, AccidentHour) %>% 
   summarise(Count = n()) %>% 
-  ggplot(aes(x = AccidentHour, y = AccidentWeekDay, fill = Count)) +
+  mutate(AccidentWeekDay_f=factor(x = AccidentWeekDay,levels = rev(c("aw401", "aw402", "aw403", "aw404", "aw405", "aw406", "aw407"
+)), labels = rev(c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")))) %>% 
+  # pull(AccidentWeekDay_f) %>% levels() %>% dput
+  ggplot(aes(x = AccidentHour, y = AccidentWeekDay_f, fill = Count)) +
     geom_raster() +
-    labs(x = 'Weekday', y = "Hour", title = "Most Accidents happen on weekdays in the evening") +
+    labs(x = 'Hour', y = "Day of  the Week", title = "Most Accidents happen on weekdays in the evening") +
     theme_minimal()
 
 ````
@@ -177,7 +145,7 @@ accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "Accid
 lorem ipsum
 
 `````{r }
-unique(accidents_df$AccidentWeekDay)
+sort(unique(accidents_df$AccidentWeekDay), decreasing = FALSE)
 
 
 `````
