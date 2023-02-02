@@ -194,6 +194,29 @@ accidents_df %>%
 ```
 Maybe because tourists travel through switzerland in summer? have a look at accidents on main roads in summer
 
+## Corresponds to amount of traffic?
+
+````{r, echo = False} 
+
+traffic %>% 
+  group_by(No) %>% 
+  mutate(count_norm = count / max(count, na.rm = TRUE))  %>% 
+  group_by(month) %>% 
+  summarise(
+    mean_traffic = mean(x = count_norm, na.rm = TRUE), 
+    median_traffic = median(x = count_norm, na.rm = TRUE), 
+    lower = quantile(x = count_norm, na.rm = TRUE, probs = c(0.25)), 
+    upper = quantile(x = count_norm, na.rm = TRUE, probs = c(0.75))
+  ) %>% 
+  ggplot(mapping = aes(x = month, y = median_traffic, group = 1)) +
+    geom_point() +
+    geom_line() +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
+    labs(title = "Median of normalized traffic in 2021")
+
+
+````
+
 
 ```{r, echo=FALSE}
 
