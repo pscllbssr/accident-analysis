@@ -20,6 +20,8 @@ library(tidyverse)
 Load the accidents dataset, already downloaded. 
 Source: https://data.geo.admin.ch/ch.astra.unfaelle-personenschaeden_alle/
 
+> Dargestellt werden alle polizeilich registrierten Strassenverkehrsunfälle mit Personenschaden der Schweiz seit 2011. Die Daten des Vorjahres werden jeweils ca. im März aktualisiert. 
+
 ```{r setup}
 library(data.table)
 
@@ -63,6 +65,19 @@ head(traffic_data)
 
 ````
 
+````{r}
+
+
+traffic_data <- traffic_data %>% 
+  filter(Messvariable == "DTV") %>% 
+  pivot_longer(cols = matches("X[0-9]{2}$"), names_to = "month", values_to = "count") #%>% 
+  # ggplot(mapping = aes(x = month, y = count, group_by = Messstelle)) +
+  #   facet_wrap( ~ Messstelle) + 
+  #   geom_point()
+
+head(traffic_data)
+````
+
 ### stations of traffic counters
 
 ````{r}
@@ -77,29 +92,28 @@ traffic_counters <- traffic_counters %>%
          "LV95_E" = "Koordinate Ost LV95\r\nCoordonnée est LV95\r\nCoordinata est LV95",
          "LV95_N" = "Koordinate Nord LV95\r\nCoordonnée nord LV95\r\nCoordinata nord LV95") %>% 
   select(c("No", "LV95_E", "LV95_N"))
+head(traffic_counters)
 ````
 
 visualize
 
-```{r}
+````{r}
 
 ggplot(data = traffic_counters, mapping = aes(x = LV95_E, y = LV95_N)) +
   geom_point() + 
   labs(title = "Map of traffic counters")
 
 ````
+### merge location data with traffic counter measurements
 
 ````{r}
 
+traffic <- left_join(traffic_data, traffic_counters, by = "No")
 
-traffic_data %>% 
-  filter(Messvariable == "DTV") %>% 
-  pivot_longer(cols = matches("X[0-9]{2}$"), names_to = "month", values_to = "count") #%>% 
-  # ggplot(mapping = aes(x = month, y = count, group_by = Messstelle)) +
-  #   facet_wrap( ~ Messstelle) + 
-  #   geom_point()
+head(traffic)
 
 ````
+
 
 ## Roads Geodata
 
@@ -113,7 +127,7 @@ traffic_data %>%
 # roads_geodata <- readOGR(file, layer="TLM_STRASSE")
 # View(roads_geodata)
 
-```
+````
 
 
 
@@ -126,23 +140,41 @@ traffic_data %>%
 #   ggtitle("AOI Boundary Plot") + 
 #   coord_sf()
 
-```
+````
+
+###
+
+````{r}
+
+library(readxl)
+municipalities <- read_excel("data/municipalities/be-t-00.04-agv-01.xlsx", 
+    sheet = "GDE")
+head(municipalities)
+
+````
+
+````{r}
+
+accidents_df <- left_join(accidents_df, municipalities[,c("GDENR", "GDENAMK")], by = join_by("MunicipalityCode" == "GDENR"))
+
+head(accidents_df)
+
+````
 
 # Analysis
 
 
-asdf
-
 ```{r, echo=FALSE}
 
 accidents_df %>% 
-  group_by(AccidentYear) %>% 
+  group_by(AccidentYear, AccidentSeverityCategory_en) %>% 
   summarise(Count = n()) %>% 
-  ggplot(mapping = aes(x = AccidentYear, y = Count, fill = AccidentYear)) +
-  geom_bar(stat = "identity") + 
+  ggplot(mapping = aes(x = AccidentYear, y = Count, fill = AccidentSeverityCategory_en)) +
+  geom_bar(stat = "identity", position = "stack") +
   labs(title = "Accidents per year",
        x = "Year",
-       y = "Nr. of accidents")
+       y = "Nr. of accidents",
+       fill = "Accident Severity")
   
 ```
 
@@ -162,9 +194,6 @@ accidents_df %>%
 ```
 Maybe because tourists travel through switzerland in summer? have a look at accidents on main roads in summer
 
-```{r }
-unique(accidents_df$RoadType_en)
-```
 
 ```{r, echo=FALSE}
 
@@ -199,7 +228,7 @@ accidents_df[,c("AccidentUID", "AccidentWeekDay", "AccidentHour")] %>%
 
 ````
 
-````{r map_of_accidents, echo = FALSE}
+````{r map_of_accidents_by_road_type, echo = FALSE}
 
 accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "RoadType_en")] %>%
   ggplot(aes(x = AccidentLocation_CHLV95_E, y = AccidentLocation_CHLV95_N, colour = RoadType_en)) +
@@ -215,8 +244,10 @@ accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "RoadT
 ````{r map_of_accidents, echo = FALSE}
 
 accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "AccidentWeekDay")] %>%
-  ggplot(aes(x = AccidentLocation_CHLV95_E, y = AccidentLocation_CHLV95_N, colour = AccidentWeekDay %in% c("aw406", "aw407"))) +
-    geom_point(alpha = 0.1) +
+  mutate(Weekend = AccidentWeekDay %in% c("aw406", "aw407")) %>% 
+  ggplot(aes(x = AccidentLocation_CHLV95_E, y = AccidentLocation_CHLV95_N, colour = Weekend)) +
+    geom_point(alpha = 0.01) +
+    facet_wrap(~Weekend) +
     labs(x = 'E', y = "N", title = "Map of accidents", colour = "Day") +
     scale_color_discrete(labels=c('Weekday', 'Weekend')) +
     theme_minimal() +
@@ -231,6 +262,7 @@ accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "Accid
              y = AccidentLocation_CHLV95_N, 
              colour = AccidentInvolvingPedestrian)) +
     geom_point(alpha = 0.1) +
+    facet_wrap( ~AccidentInvolvingPedestrian, nrow = 2) +
     labs(x = 'E', y = "N", title = "Map of accidents", colour = "Pedestrian") +
     theme_minimal() +
     guides(colour = guide_legend(override.aes = list(alpha = 1))) +
@@ -238,11 +270,103 @@ accidents_df[,c("AccidentLocation_CHLV95_E", "AccidentLocation_CHLV95_N", "Accid
 
 ````
 
-lorem ipsum
+### Most accidents by municipality
 
 `````{r }
-sort(unique(accidents_df$AccidentWeekDay), decreasing = FALSE)
 
+library(knitr)
 
+accidents_df %>% 
+  group_by(MunicipalityCode) %>% 
+  summarise(total = n()) %>% 
+  arrange(desc(total)) %>% 
+  slice(1:10) %>% 
+  kable(caption = "Most dangerous municipalites")
 `````
+
+`````{r }
+
+library(knitr)
+
+accidents_df %>% 
+  filter(AccidentSeverityCategory == "as1") %>% 
+  group_by(MunicipalityCode) %>% 
+  summarise(total = n()) %>% 
+  arrange(desc(total)) %>% 
+  slice(1:10) %>% 
+  kable(caption = "Municipalities with most fatalities in accidents")
+`````
+
+
+````{r map_of_accidents_by_road_type, echo = FALSE}
+
+map_acc <- accidents_df %>%
+  filter(AccidentSeverityCategory == "as1") %>%
+  ggplot(aes(x = AccidentLocation_CHLV95_E, y = AccidentLocation_CHLV95_N, label = GDENAMK, color = RoadType_en)) +
+    geom_point(alpha = 1) +
+    labs(x = 'E', y = "N", title = "Map of fatal accidents") +
+    theme_minimal() +
+    coord_fixed()
+
+plotly::ggplotly(map_acc)
+
+````
+
+# Model
+
+```{r}
+
+# model <- lm(AccidentSeverityCategory ~ RoadType, data = accidents_df)
+# summary(model)
+
+ggplot(data = accidents_df, aes(y = AccidentHour, fill = AccidentSeverityCategory_en)) +
+  geom_bar() +
+  facet_wrap(~ AccidentSeverityCategory_en, scales = "free") +
+  labs(x = "Number of accidents")  
+
+```
+
+```{r}
+
+# model <- lm(AccidentSeverityCategory ~ RoadType, data = accidents_df)
+# summary(model)
+
+ggplot(data = accidents_df, aes(y = AccidentHour, fill = RoadType_en)) +
+  geom_bar() +
+  facet_wrap(~ RoadType_en) +
+  labs(x = "Number of accidents")  
+
+```
+
+````{r map_of_accidents_by_road_type, echo = FALSE}
+
+accidents_df %>%
+  filter(MunicipalityCode == 261) %>% 
+  ggplot(aes(x = AccidentLocation_CHLV95_E, y = AccidentLocation_CHLV95_N, colour = RoadType_en)) +
+    geom_point(alpha = 0.1) +
+    labs(x = 'E', y = "N", title = "Map of accidents in ZH") +
+    theme_minimal() +
+    guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+    coord_fixed() + 
+    labs(colour = "Type of road")
+
+````
+
+```{r}
+
+# model <- lm(factor(AccidentSeverityCategory) ~ AccidentHour, data = accidents_df[,!is.na("AccidentSeverityCategory")])
+# summary(model)
+
+model_data <- accidents_df %>% 
+  group_by(AccidentSeverityCategory_en, AccidentHour) %>% 
+  summarise(count = n()) %>% 
+  mutate(severity = factor(AccidentSeverityCategory_en))
+
+ggplot(data = model_data, mapping = aes(x = AccidentHour, y = count, group_by = severity)) +
+  geom_line()
+
+
+```
+
+
 Thanks, bye!
