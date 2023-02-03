@@ -2,10 +2,12 @@
 title: "Analysis"
 author: "Mel Fioravanti & Pascal Albisser"
 date: "2023-01-30"
-always_allow_html: TRUE
 output:
+  pdf_document:
+    toc: yes
   html_document:
-    toc: TRUE
+    toc: yes
+always_allow_html: yes
 ---
 
 load libs
@@ -41,7 +43,7 @@ kable(head(accidents_df))
 - https://www.astra.admin.ch/astra/de/home/dokumentation/daten-informationsprodukte/verkehrsdaten/daten-publikationen/automatische-strassenverkehrszaehlung/monats-jahresergebnisse.html
 
 
-````{r}
+````{r, echo=FALSE}
 
 traffic <- read.csv("data/processed/traffic.csv")
 
@@ -49,7 +51,7 @@ traffic <- read.csv("data/processed/traffic.csv")
 
 ## Roads (Motorways)
 
-````{r}
+````{r, echo=FALSE}
 national_roads_file <-
   "data/roads/ch.astra.nationalstrassenachsen.gdb"
 st_layers(national_roads_file)
@@ -71,7 +73,7 @@ municipalities <- read_excel("data/municipalities/be-t-00.04-agv-01.xlsx",
 
 ````
 
-````{r}
+````{r, echo=FALSE}
 
 accidents_df <- left_join(accidents_df, municipalities[,c("GDENR", "GDENAMK")], by = join_by("MunicipalityCode" == "GDENR"))
 
@@ -220,7 +222,7 @@ accidents_as_sf$nearestCounter <-
 
 Visual Explanation & Check interactively
 
-````{r}
+````{r , echo=FALSE}
 plt <- ggplot() +
   geom_sf(data = accidents_as_sf,
           mapping = aes(colour = nearestCounter)) +
@@ -238,7 +240,7 @@ plotly::ggplotly(plt)
 Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
 
 In order to model, group accidents by month/year and match with respective traffic data
-```{r}
+```{r , echo=FALSE}
 
 motorway_accidents_per_month <- as.data.frame(accidents_as_sf) %>% 
   group_by(nearestCounter, AccidentMonth, AccidentYear) %>% 
@@ -261,7 +263,7 @@ model_data <- as.data.frame(model_data) %>%
 
 Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
 
-```{r}
+```{r , echo=FALSE}
 
 ggplot(data = model_data,
              mapping = aes(
