@@ -46,6 +46,10 @@ kable(head(accidents_df))
 ````{r, echo=FALSE}
 
 traffic <- read.csv("data/processed/traffic.csv")
+traffic <- traffic %>% 
+  filter(!is.na(traffic$LV95_E)) %>% 
+  filter(str_detect(Strasse, "A"))
+kable(head(traffic))
 
 ````
 
@@ -148,11 +152,13 @@ traffic %>%
 
 ````
 
-### Going deeper - Chapter of choice
+### Spatial Joins - Chapter of choice
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+So far we have only compared traffic and number of accidents on a very high level. What if we wanted to look at this relationship on a more granular level? As we have the exact location of each accident and each traffic measurement we should be able to do this per street/sector. But in order to do so we need to somehow find a corresponding traffic measurement for each accident as there is no link between them as of now.
   
-- Convert traffic data into geodata-frame.
+This is where the `sf`-package drops in. SF stands for [https://en.wikipedia.org/wiki/Simple_Features](simple features) and comes with a lot of functions to deal with geospatial data. The package itself was already mentioned in the course to plot maps. We will use it here to find the shortest distence between two geospatial points to join the two datasets. This is done in the following steps:
+    
+To make things easier for us we first convert the given traffic data into a geodata-frame. With the function `st_as_sf()` each line is transferred into a simple feature with the specified coordinates. As both datasets are in the [https://www.swisstopo.admin.ch/en/knowledge-facts/surveying-geodesy/reference-frames/local/lv95.html](swiss LV95) georeference system we do not need to worry about specifying or converting the coordinates at this point.
 
 ````{r}
 traffic_as_sf <- st_as_sf(
@@ -162,8 +168,8 @@ traffic_as_sf <- st_as_sf(
 
 ````
 
+As most traffic counters are located on motorways we filter our accident data on roadtype and the given years for which we hold traffic data (2018-2021).
 
-- filter accidents on motorways & given years of traffic data (2018 - 2021).
 ````{r}
 
 accidents_motorways <- accidents_df %>%
@@ -171,14 +177,16 @@ accidents_motorways <- accidents_df %>%
   filter(AccidentYear > 2017)
 ````
 
-These make xx% of all accidents, not much, but at least something to model
+The accidents on motorways during the given year make roughly 3% of all accidents. This is a small subset of the accidents but still some points to model.
+
 ````{r}
 
 nrow(accidents_motorways) / nrow(accidents_df)
 
 ````
 
-Convert to geodata-object
+As before with the traffic data we also convert our traffic data into simple features with the given coordinates. Note: these are also in swiss LV95.
+
 ````{r}
 
 accidents_as_sf <-
@@ -189,8 +197,26 @@ accidents_as_sf <-
 
 ````
 
-Where the magic happens 1 - Add road name and segment to each accident  
-Means matching GeoPoints to GeoLines
+Now we want to know on which road and segment a given accident happened. Given only the coordinates of both sides and no further information we utilize a function called `st_nearest_feature(x, y)`. It returns the index of the nearest feature in `y` (in our case the national roads) for every given feature in `x` (the accidents).
+
+For example: The one accident given on the following map (black dot) should map to the street segment WANKDORF - LIMMATTAL of the selected motorway N1. 
+
+````{r}
+
+ggplot() + 
+  geom_sf(data = accidents_as_sf[5, ]) +
+  geom_sf(data = national_roads_geodata[national_roads_geodata$Strassennummer == "N1",], mapping = aes(color = Segmentname)) +
+  labs(title = "Accident #5 on motorway N1", x = "East", y = "North")
+
+````
+This is confirmed by the following code:
+````{r}
+
+idx = st_nearest_feature(accidents_as_sf[5, ], national_roads_geodata)
+national_roads_geodata[idx,c("Segmentname")]
+
+````
+As we now have acknowledged the function works as expected we can do this for all accidents and add the respectice columns to the accidents dataset.
 
 ````{r}
 
@@ -205,8 +231,27 @@ accidents_as_sf$road_segment <-
 
 ````
 
-Where the magic happens 2 - Add nearest traffic counter to each accident
-Means matching GeoPoints to GeoPoints
+As a second step we want to find the nearest traffic counter. This allows us to approximate the traffic at the given accident location during the given month/year. We apply the same procedure as above, but now finding the nearest point in the traffic dataset. But first let us pick the same accident before (black dot) and its nearest traffic counters (red):
+
+````{r}
+
+ggplot() + 
+  geom_sf(data = traffic_as_sf[traffic_as_sf$Strasse == "A1" & traffic_as_sf$Canton == "BE",], mapping = aes(color = Canton)) +
+  geom_sf_text(data = traffic_as_sf[traffic_as_sf$Strasse == "A1" & traffic_as_sf$Canton == "BE",], mapping = aes(label = No), nudge_x = -2000, nudge_y = 1000) +
+  geom_sf(data = accidents_as_sf[5, ]) +
+  labs(title = "Accident #5 and nearby traffic counters", x = "East", y = "North")
+  
+````
+  
+This is confirmed also confirmed by a little check. 
+````{r}
+
+idx = st_nearest_feature(accidents_as_sf[5, ], traffic_as_sf)
+traffic_as_sf[idx,c("No")]
+
+````
+
+After acknowledging it is working properly we apply the procedure to the whole data.
 
 ````{r}
 
@@ -219,8 +264,7 @@ accidents_as_sf$nearestCounter <-
 
 ````
 
-
-Visual Explanation & Check interactively
+To check our results we plot all our accidents on an interactive map and visualize the joins by colour. The result seems to be accurate and allows us to go on. 
 
 ````{r , echo=FALSE}
 plt <- ggplot() +
@@ -464,5 +508,24 @@ ggplot(data = model_data, mapping = aes(x = AccidentHour, y = count, group_by = 
 
 
 ```
+````{r}
 
+unique(accidents_df$AccidentType_de)
 
+ggplot(data = accidents_df) +
+  geom_bar(mapping = aes(x = AccidentType_de, fill = AccidentType_de)) +
+  facet_wrap(~RoadType_en, ncol = 2)
+
+````
+
+````{r, echo = FALSE}
+
+library(ggridges)
+
+accidents_df %>% mutate(AccidentWeekDay_f=factor(x = AccidentWeekDay,levels = rev(c("aw401", "aw402", "aw403", "aw404", "aw405", "aw406", "aw407"
+)), labels = rev(c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")))) %>% 
+  ggplot() +
+    geom_density_ridges(mapping = aes(x = AccidentHour, y = AccidentWeekDay_f, fill = AccidentWeekDay_f)) +
+    theme(legend.position = "none") + 
+    labs(title = "Most accidents happen on weekdays after work", y = "Day of accident", x = "Hour of accident")
+````
