@@ -28,6 +28,25 @@ library(data.table)
 Load the accidents dataset, already downloaded. 
 Source: https://data.geo.admin.ch/ch.astra.unfaelle-personenschaeden_alle/
 
+In order to establish whether there are external factors that influence the amount of car accidents in Switzerland, we analyze two data-sets: 
+the first (accidents) provides us with data from 2011 to 2021, and it is comprised of various factors relating to each accident. 
+
+Here we have the following: 
+-accident location (given in N and E coordinates in separate columns,) -severity of the accident (with 3 degrees,) 
+-day of the week, month, year, and hour of the day (but we do miss the day of the month,) 
+-whether the accident involved a pedestrian, bike, and/or motorcycle, 
+-the type of accident(e.g. head-on collision,) 
+-the type of road on which the accident happened, 
+-various information about the location and municipality (Canton, municipality code, etc.)
+
+Since we are interested, among other things, in finding out if there is a correlation between traffic and the amount of accidents on any given day, we also have the traffic data-set, which we matched to the accidents one. 
+This data-set contains information about the location of traffic detectors throughout Switzerland. For each accident, we found the closest traffic detector. The data-set contains the following information: 
+-name of the detector, canton, and road name (e.g A1,)
+- month and year of the traffic detection, 
+-exact location of the detector, given in N E coordinates.
+
+With this analysis, our aim is to give an overview of the traffic situation in Switzerland over the last decade and to identify interesting trends, in order to isolate the factors that can predict the probability of having a car accident, if any can be extrapolated from these data-sets. 
+
 > Dargestellt werden alle polizeilich registrierten Strassenverkehrsunfälle mit Personenschaden der Schweiz seit 2011. Die Daten des Vorjahres werden jeweils ca. im März aktualisiert. 
 
 ```{r setup, echo=FALSE}
@@ -41,7 +60,7 @@ kable(head(accidents_df))
 - describe how data is obtained (automatically, by whom, etc.)
 - Data is really messy - preperation in seperate file `traffic-preprocessing.R` - only load csv
 - https://www.astra.admin.ch/astra/de/home/dokumentation/daten-informationsprodukte/verkehrsdaten/daten-publikationen/automatische-strassenverkehrszaehlung/monats-jahresergebnisse.html
-
+ The data on traffic by the **Federal Roads Office** (which is a count of the number of cars detected at each station in a given month) was quite messy, and all in separate monthly files. Therefore, the data needed to be merged and cleaned so that it could be used for our analysis. 
 
 ````{r, echo=FALSE}
 
@@ -54,6 +73,11 @@ kable(head(traffic))
 ````
 
 ## Roads (Motorways)
+
+**Pascal, I am not sure what happened here. for example, I don't understand what the Positionscode refers to.**
+
+
+
 
 ````{r, echo=FALSE}
 national_roads_file <-
@@ -68,6 +92,7 @@ kable(head(national_roads_geodata))
 ````
 
 ## Municipalities
+**same here. do we even need to write something up about it? I can do it once we talk about it and I know whats going on**
 
 ````{r}
 
@@ -87,12 +112,16 @@ kable(head(accidents_df))
 
 # Analysis
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+Let's start our journey from the big picture. How many car accidents have there been in the last decade? And of these, how many were fatal? The graph below answers these questions. While we could expect a rise in car accidents, we see that generally there is little to no difference from one year to the other, with the exception of 2020. As we know, this was the year in which the Covid-19 outbreak caused a lockdown, with a subsequent decrease in cars on the roads. This will be further discussed below. Despite a lower total for 2020, we can see that the amount of accidents with severe injuries remains in line with the other years. 
+2011 holds the first place in both total count of accidents, and most accidents in each severity category. It would be interesting to investigate this phenomenon further to see whether there is any causality with external events, such as the implementation of a new traffic law or temperatures,or if it is casual. 
+The safest year of the decade, bar 2020, was 2013, where all both the total count and the total of each severity category is the lowest.
+Albeit small, there is a slight decrease in accidents with severe injuries over the last decade. 
+
+**please change the order of the stacked stuff in order of severity, from least to most on top, thanks :0) ** 
 
 ## Overview Statistics
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
-
+**not sure what you envisioned wrting here**
 
 ```{r, echo=FALSE}
 
@@ -101,13 +130,23 @@ accidents_df %>%
   summarise(Count = n()) %>% 
   ggplot(mapping = aes(x = AccidentYear, y = Count, fill = AccidentSeverityCategory_en)) +
   geom_bar(stat = "identity", position = "stack") +
-  labs(title = "Accidents per year",
+  labs(title = "Accidents per Year",
+       subtitle = "2011-2021",
        x = "Year",
        y = "Nr. of accidents",
-       fill = "Accident Severity")
+       fill = "Accident Severity") + 
+  scale_y_continuous(breaks = seq(0, 20000, 1500)) +
+  scale_x_continuous(breaks = seq(2011, 2021, 1)) +
+  scale_fill_manual(values = c("black", "sienna3", "darkred"))
+  #stat_smooth(method = "lm", se = FALSE)
+                     
   
 ```
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+Now let's dig deeper and look at the monthly data. The bar chart below shows the number of accident per each month of the year. It shows that the total number of accidents that happened in the last decade in the month of june is by far the highest, reaching almost 21000. 
+On the other hand, the safest month to drive in Switzerland is February. 
+While our initial hypothesis was the winter months would be the ones with the most accidents due to icy roads, it appears that ice and snow do not constitute a reason for the Swiss to drive less safely. 
+However, with the start of summer and the touristic season, the number of accidents increases dramatically, suggesting that one of the causes of the increase could be the higher number of cars on the road. 
+To stay safe, it is probably best to use trains and public transport during the summer months, and rely on the automobile during the off-season months. 
 
 ```{r, echo=FALSE}
 
@@ -116,19 +155,33 @@ accidents_df %>%
   summarise(Count = n()) %>% 
   ggplot(mapping = aes(x = factor(AccidentMonth), y = Count, fill = Count)) +
   geom_bar(stat = "identity") + 
-  scale_fill_continuous(type = "gradient", trans = "reverse") +
+  scale_fill_gradient(low = "palegreen4", high = "darkred") +
   scale_x_discrete() +
-  labs(title = "Most accidents happen in the summer",
+  labs(title = "Number of Accidents per Month",
+       subtitle = "Most Accidents happen in the summer",
        x = "Month",
-       y = "Nr. of accidents")
+       y = "Nr. of accidents") +
+  geom_text(aes(label = ifelse(Count == max(Count),     as.character(Count), "")),
+            vjust = -0.5, color = "darkred", size = 3)+
+  scale_x_discrete( labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  scale_y_continuous(breaks = seq(0, 21000, 3000))
+ 
   
 ```
 
 ## Correlation traffic - accidents
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+In our analysis, we want to know whether there is a correlation between cars on the road and amount of accidents. We therefore look at the measurements of traffic across months from the year 2018 to 2021.
+The first thig that draws our attention is that the median drops significantly in April of 2020, when the lockdown happened. However, we see that after that the values are back to average,following the trend of being less in the winter, and rising up again as the summer approaches. 
+
+We would, however, expect to see a spike in traffic during the month of June, or at least the summer months in general. 
+Based on this graph, we do see a small spike in the median of the amount of traffic, but it is difficult to tell whether the spike could be causing the higher amount of accidents or not. We therefore need to perform a statistical analysis to confirm or reject our thesis. 
   
-2020 should not really be considered (pandemic)
+**2020 should not really be considered (pandemic)**
+**question, hope it isnt stupid. Why are we looking at total number of accidents vs median of traffic? to draw a comparison, shouldnt we look at total number and then  a percentage or something? again, sorry if it doestn make sense.** 
+
+**I would still put the following chapter either before or after, but it really doesn't matter.** 
+
 
 ````{r, echo = FALSE} 
 
@@ -147,16 +200,23 @@ traffic %>%
     geom_point() +
     geom_line() +
     geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.1) +
-    labs(title = "Median of normalized traffic, 2018 - 2021")
+    labs(title = "Median of Normalized Traffic", 
+         subtitle = "2018-2021",
+         y = "Median",
+         x = "Month") +
+   scale_x_continuous( labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"), 
+                      breaks = seq(1,12,1)) + 
+  scale_y_continuous(breaks = seq(0, 1, 0.2))
 
 
 ````
 
 ### Spatial Joins - Chapter of choice
 
-So far we have only compared traffic and number of accidents on a very high level. What if we wanted to look at this relationship on a more granular level? As we have the exact location of each accident and each traffic measurement we should be able to do this per street/sector. But in order to do so we need to somehow find a corresponding traffic measurement for each accident as there is no link between them as of now.
+So far we compared amount of traffic to number of accidents on a very general level. But what if we wanted to look at this relationship on a more granular level? As we have the exact location of each accident and each traffic measurement we should be able to do this for each street/sector. But in order to do so we need to have a corresponding measurement of traffic for each accident, but as of now there is no link between them.
   
-This is where the `sf`-package drops in. SF stands for [https://en.wikipedia.org/wiki/Simple_Features](simple features) and comes with a lot of functions to deal with geospatial data. The package itself was already mentioned in the course to plot maps. We will use it here to find the shortest distence between two geospatial points to join the two datasets. This is done in the following steps:
+This is where the `sf`-package comes into play. SF stands for [https://en.wikipedia.org/wiki/Simple_Features](simple features) and it comes with a lot of functions to deal with geo-spatial data. The package itself was mentioned in the course to plot maps. Here, we will use it to find the shortest distance between two geo-spatial points so that we can join the two data-sets at said points.
+This is done as follows:
     
 To make things easier for us we first convert the given traffic data into a geodata-frame. With the function `st_as_sf()` each line is transferred into a simple feature with the specified coordinates. As both datasets are in the [https://www.swisstopo.admin.ch/en/knowledge-facts/surveying-geodesy/reference-frames/local/lv95.html](swiss LV95) georeference system we do not need to worry about specifying or converting the coordinates at this point.
 
@@ -168,7 +228,7 @@ traffic_as_sf <- st_as_sf(
 
 ````
 
-As most traffic counters are located on motorways we filter our accident data on roadtype and the given years for which we hold traffic data (2018-2021).
+As most traffic counters are located on motorways, we filter our accident data by road type and the years for which we have the traffic data (2018-2021.)
 
 ````{r}
 
@@ -177,7 +237,7 @@ accidents_motorways <- accidents_df %>%
   filter(AccidentYear > 2017)
 ````
 
-The accidents on motorways during the given year make roughly 3% of all accidents. This is a small subset of the accidents but still some points to model.
+The accidents on motorways during the given year make up roughly 3% of all accidents. This is a small subset of the accidents, but it can still give us some interesting insights for a model.
 
 ````{r}
 
@@ -185,8 +245,8 @@ nrow(accidents_motorways) / nrow(accidents_df)
 
 ````
 
-As before with the traffic data we also convert our traffic data into simple features with the given coordinates. Note: these are also in swiss LV95.
-
+As we did for the traffic data,  we also convert our traffic data into simple features with the given coordinates. Note: these are also in Swiss LV95.
+**sorry here I don't understand what you are sayin, but I think there is a typo** 
 ````{r}
 
 accidents_as_sf <-
@@ -197,9 +257,9 @@ accidents_as_sf <-
 
 ````
 
-Now we want to know on which road and segment a given accident happened. Given only the coordinates of both sides and no further information we utilize a function called `st_nearest_feature(x, y)`. It returns the index of the nearest feature in `y` (in our case the national roads) for every given feature in `x` (the accidents).
+Now we want to know on which road and segment a given accident happened. Given only the coordinates of both and no further information, we utilize a function called `st_nearest_feature(x, y)`. This returns the index of the nearest feature in `y` (in our case the national roads) for every given feature in `x` (the accidents.)
 
-For example: The one accident given on the following map (black dot) should map to the street segment WANKDORF - LIMMATTAL of the selected motorway N1. 
+For example: The accident given on the following map (black dot) should map to the street segment WANKDORF - LIMMATTAL of the selected motorway N1. 
 
 ````{r}
 
@@ -216,7 +276,7 @@ idx = st_nearest_feature(accidents_as_sf[5, ], national_roads_geodata)
 national_roads_geodata[idx,c("Segmentname")]
 
 ````
-As we now have acknowledged the function works as expected we can do this for all accidents and add the respectice columns to the accidents dataset.
+As we have seen,  the function works as expected we can apply this to all accidents and add the respective columns to the accidents data-set.
 
 ````{r}
 
@@ -231,7 +291,7 @@ accidents_as_sf$road_segment <-
 
 ````
 
-As a second step we want to find the nearest traffic counter. This allows us to approximate the traffic at the given accident location during the given month/year. We apply the same procedure as above, but now finding the nearest point in the traffic dataset. But first let us pick the same accident before (black dot) and its nearest traffic counters (red):
+As a second step we want to find the nearest traffic counter. This allows us to approximate the amount of traffic at the given accident location during the given time period (month/year.) We apply the same procedure as above, but now finding the nearest point in the traffic data-set. Again, we pick the same accident as before (black dot) and its nearest traffic counters (red:)
 
 ````{r}
 
@@ -243,7 +303,7 @@ ggplot() +
   
 ````
   
-This is confirmed also confirmed by a little check. 
+We can further confirm this by using this method. 
 ````{r}
 
 idx = st_nearest_feature(accidents_as_sf[5, ], traffic_as_sf)
@@ -251,7 +311,7 @@ traffic_as_sf[idx,c("No")]
 
 ````
 
-After acknowledging it is working properly we apply the procedure to the whole data.
+Once we are sure that the results are accurate, we apply the procedure to the whole data-set.
 
 ````{r}
 
@@ -264,16 +324,24 @@ accidents_as_sf$nearestCounter <-
 
 ````
 
-To check our results we plot all our accidents on an interactive map and visualize the joins by colour. The result seems to be accurate and allows us to go on. 
+To check our results we plot all our accidents on an interactive map and visualize the joins by color. The result seems to be accurate and we can move forward.
+
+**here we need to find a better marker probably. I've played around with it and landed on these small squares for now.I cant really see the dots still so it needs to change, but not sure how to isolate the dots?**
 
 ````{r , echo=FALSE}
+
+
 plt <- ggplot() +
   geom_sf(data = accidents_as_sf,
           mapping = aes(colour = nearestCounter)) +
   scale_color_gradientn(colours = rainbow(3)) +
   geom_sf(data = traffic_as_sf,
-          mapping = aes(colour = No), shape = 13, size = 6) +
-  labs(title = "Check mapping of accidents (dots) & counters (cross)")
+          mapping = aes(colour = No), shape = 18, size = 2) +
+  labs(title = "Check mapping of accidents (dots) & counters (cross)",
+       ) +
+  theme(axis.text.x = element_blank(), axis.text.y = element_blank()) + 
+  xlab("S") + 
+  ylab("W")
 
 plotly::ggplotly(plt)
 
@@ -281,9 +349,7 @@ plotly::ggplotly(plt)
 
 ## Modelling Traffic vs. Accidents
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
-
-In order to model, group accidents by month/year and match with respective traffic data
+In order to model/group accidents by month/year, we match it with the respective traffic data:
 ```{r , echo=FALSE}
 
 motorway_accidents_per_month <- as.data.frame(accidents_as_sf) %>% 
@@ -305,26 +371,55 @@ model_data <- as.data.frame(model_data) %>%
 
 ```
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+**I would LOVE to know what is wrong in my code for cor(). not that I need it, but It would have been nice to have the cor** 
 
 ```{r , echo=FALSE}
 
+# ggplot(data = model_data,
+#              mapping = aes(
+#                x = NumberOfAccidents, 
+#                y = AvgTrafficPerDay,
+#                color = Month %in% c(6,7,8)
+#               )) +
+#   geom_point() +
+#   geom_jitter(width = .2) +
+#   scale_color_discrete(labels=c('Rest of the Year', 'Summer')) +
+#   labs(colour = "Month", title = "Number of Accidents vs. Amount of Traffic (per Day)", subtitle = "2018-2021") +
+#   xlab("Number of Accidents") +
+#   ylab("Average Cars per Day")  
+
 ggplot(data = model_data,
              mapping = aes(
-               x = NumberOfAccidents, 
-               y = AvgTrafficPerDay,
-               color = Month %in% c(6,7,8)
+               x = AvgTrafficPerDay,
+               y = NumberOfAccidents
               )) +
   geom_point() +
   geom_jitter(width = .2) +
-  scale_color_discrete(labels=c('Others', 'Summer')) +
-  labs(colour = "Month", title = "Number of Accidents vs. Amount of Traffic, 2018 - 2021")
-
+  labs(title = "Number of Accidents vs. Amount of Traffic (per Day)",    subtitle = "2018-2021") +
+  geom_point() +
+  geom_smooth(method="lm", se=FALSE) +
+  xlab("Number of Cars Detected") +
+  ylab("Number of Accidents") 
+  
+#cor(model_data$AvgTrafficPerDay, model_data$NumberOfAccidents, na.rm = TRUE)
+ 
 ```
 
 ## Rush Hour Accidents
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+After analyzing traffic in relation to years and months, we now take a deeper look at what an average day looks like. That is, we answer the questions:
+-"During what times are there more accidents?" 
+-"Are there more accidents on any given day of the week?" 
+
+The following heatmap answers the questions in a very straightforward manner. If we look at the lighter areas, which correspond to the times with the most accidents, we can identify two main time zones during the work week (Monday through Friday:) 
+- between _6A.M. and 8A.M_
+- between _4P.M and 6P.M._ 
+
+During the weekend (Saturday and Sunday, ) there isn't a clear time frame in which more accidents happen, but they are mainly happening in the late morning to mid afternoon.
+
+This shows us that most accidents happen when people are on their way to and from work, being that the formerly identified time frames coincide quite accurately with the limits of the workday in Switzerland. On the other hand, during the weekend it is clear that people tend to leave the house either later or not all in bulk as they do during the week, therefore making it difficult to find a clear pattern. 
+
+**Mel change the ticks on this graph to include more hours**
 
 ````{r heatmap_of_accidents, echo = FALSE}
 
@@ -343,7 +438,7 @@ accidents_df[,c("AccidentUID", "AccidentWeekDay", "AccidentHour")] %>%
 
 ## Zurich - the most dangerous Municipality (in absolute numbers)
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+poor zurich 
 
 `````{r }
 
