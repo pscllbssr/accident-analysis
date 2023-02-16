@@ -3,9 +3,9 @@ title: "Analysis"
 author: "Mel Fioravanti & Pascal Albisser"
 date: "2023-01-30"
 output:
-  pdf_document:
-    toc: yes
   html_document:
+    toc: yes
+  pdf_document:
     toc: yes
 always_allow_html: yes
 ---
@@ -32,6 +32,7 @@ In order to establish whether there are external factors that influence the amou
 the first (accidents) provides us with data from 2011 to 2021, and it is comprised of various factors relating to each accident. 
 
 Here we have the following: 
+
 -accident location (given in N and E coordinates in separate columns,) -severity of the accident (with 3 degrees,) 
 -day of the week, month, year, and hour of the day (but we do miss the day of the month,) 
 -whether the accident involved a pedestrian, bike, and/or motorcycle, 
@@ -41,6 +42,7 @@ Here we have the following:
 
 Since we are interested, among other things, in finding out if there is a correlation between traffic and the amount of accidents on any given day, we also have the traffic data-set, which we matched to the accidents one. 
 This data-set contains information about the location of traffic detectors throughout Switzerland. For each accident, we found the closest traffic detector. The data-set contains the following information: 
+
 -name of the detector, canton, and road name (e.g A1,)
 - month and year of the traffic detection, 
 -exact location of the detector, given in N E coordinates.
@@ -57,10 +59,10 @@ kable(head(accidents_df))
 
 ## Traffic
 
-- describe how data is obtained (automatically, by whom, etc.)
+- describe how data is obtained (automatically, by whom, etc.) **Mel, can you look that up? Only 2-3 sentences, maybe include a picture of the counting machines? just to give some background**
 - Data is really messy - preperation in seperate file `traffic-preprocessing.R` - only load csv
-- https://www.astra.admin.ch/astra/de/home/dokumentation/daten-informationsprodukte/verkehrsdaten/daten-publikationen/automatische-strassenverkehrszaehlung/monats-jahresergebnisse.html
- The data on traffic by the **Federal Roads Office** (which is a count of the number of cars detected at each station in a given month) was quite messy, and all in separate monthly files. Therefore, the data needed to be merged and cleaned so that it could be used for our analysis. 
+
+The data on traffic by the **Federal Roads Office** (which is a count of the number of cars detected at each station in a given month) was quite messy, and all in separate yearly files with, each with different structure. Therefore, the data needed to be merged and cleaned so that it could be used for our analysis. Some of the preprocessing is done by hand, some of it in the file `./traffic-preprocessing.R`. Here we load our preprocessed dataset. 
 
 ````{r, echo=FALSE}
 
@@ -75,9 +77,8 @@ kable(head(traffic))
 ## Roads (Motorways)
 
 **Pascal, I am not sure what happened here. for example, I don't understand what the Positionscode refers to.**
-
-
-
+For plotting and background checks we also load the street-network of swiss motorways. This is a geodata-set including geographical ubications of all national roads in Switzerland and corresponding attributes like name, etc.   
+The `sf`-library allows to directly read from the `.gdb` file format. 
 
 ````{r, echo=FALSE}
 national_roads_file <-
@@ -93,6 +94,8 @@ kable(head(national_roads_geodata))
 
 ## Municipalities
 **same here. do we even need to write something up about it? I can do it once we talk about it and I know whats going on**
+
+**I think we can drop the municipality stuff as we do not need it.**
 
 ````{r}
 
@@ -117,18 +120,18 @@ Let's start our journey from the big picture. How many car accidents have there 
 The safest year of the decade, bar 2020, was 2013, where all both the total count and the total of each severity category is the lowest.
 Albeit small, there is a slight decrease in accidents with severe injuries over the last decade. 
 
-**please change the order of the stacked stuff in order of severity, from least to most on top, thanks :0) ** 
+**please change the order of the stacked stuff in order of severity, from least to most on top, thanks :0) ** - **maybe you need to rearrange colors now?**
 
 ## Overview Statistics
 
-**not sure what you envisioned wrting here**
+**not sure what you envisioned wrting here** - **exactly what you did above**
 
 ```{r, echo=FALSE}
 
 accidents_df %>% 
   group_by(AccidentYear, AccidentSeverityCategory_en) %>% 
   summarise(Count = n()) %>% 
-  ggplot(mapping = aes(x = AccidentYear, y = Count, fill = AccidentSeverityCategory_en)) +
+  ggplot(mapping = aes(x = AccidentYear, y = Count, fill = factor(AccidentSeverityCategory_en, levels = c("Accident with fatalities", "Accident with severe injuries", "Accident with light injuries")))) +
   geom_bar(stat = "identity", position = "stack") +
   labs(title = "Accidents per Year",
        subtitle = "2011-2021",
@@ -178,7 +181,7 @@ We would, however, expect to see a spike in traffic during the month of June, or
 Based on this graph, we do see a small spike in the median of the amount of traffic, but it is difficult to tell whether the spike could be causing the higher amount of accidents or not. We therefore need to perform a statistical analysis to confirm or reject our thesis. 
   
 **2020 should not really be considered (pandemic)**
-**question, hope it isnt stupid. Why are we looking at total number of accidents vs median of traffic? to draw a comparison, shouldnt we look at total number and then  a percentage or something? again, sorry if it doestn make sense.** 
+**question, hope it isnt stupid. Why are we looking at total number of accidents vs median of traffic? to draw a comparison, shouldnt we look at total number and then  a percentage or something? again, sorry if it doestn make sense.** - **I would argue that this is just a very general visual overview to get a first impression. So the unit does not really matter, its just ups and downs - the statistical model is what we do below right?**
 
 **I would still put the following chapter either before or after, but it really doesn't matter.** 
 
@@ -245,7 +248,7 @@ nrow(accidents_motorways) / nrow(accidents_df)
 
 ````
 
-As we did for the traffic data,  we also convert our traffic data into simple features with the given coordinates. Note: these are also in Swiss LV95.
+As we did for the traffic data,  we also convert our accident data into simple features with the given coordinates. Note: these are also in Swiss LV95.
 **sorry here I don't understand what you are sayin, but I think there is a typo** 
 ````{r}
 
@@ -326,7 +329,7 @@ accidents_as_sf$nearestCounter <-
 
 To check our results we plot all our accidents on an interactive map and visualize the joins by color. The result seems to be accurate and we can move forward.
 
-**here we need to find a better marker probably. I've played around with it and landed on these small squares for now.I cant really see the dots still so it needs to change, but not sure how to isolate the dots?**
+**here we need to find a better marker probably. I've played around with it and landed on these small squares for now.I cant really see the dots still so it needs to change, but not sure how to isolate the dots?** - **maybe play with sizes & alpha (opacity)? **
 
 ````{r , echo=FALSE}
 
@@ -401,9 +404,18 @@ ggplot(data = model_data,
   xlab("Number of Cars Detected") +
   ylab("Number of Accidents") 
   
-#cor(model_data$AvgTrafficPerDay, model_data$NumberOfAccidents, na.rm = TRUE)
+cor(model_data$AvgTrafficPerDay, model_data$NumberOfAccidents)
  
 ```
+
+## interpreting the regression model... (I just think we need to add some interpretation in 2-3 sentences as in statistics)
+
+```{r}
+traffic_accident_model <- lm(NumberOfAccidents ~ AvgTrafficPerDay, data = model_data )
+summary(traffic_accident_model)
+```
+
+This is significant at ... blablabla ... for every nth car passing there is an accident... blablabla.
 
 ## Rush Hour Accidents
 
