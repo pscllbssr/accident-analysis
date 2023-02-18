@@ -3,9 +3,9 @@ title: "Analysis"
 author: "Mel Fioravanti & Pascal Albisser"
 date: "2023-01-30"
 output:
-  html_document:
-    toc: yes
   pdf_document:
+    toc: yes
+  html_document:
     toc: yes
 always_allow_html: yes
 ---
@@ -76,8 +76,7 @@ kable(head(traffic))
 
 ## Roads (Motorways)
 
-**Pascal, I am not sure what happened here. for example, I don't understand what the Positionscode refers to.**
-For plotting and background checks we also load the street-network of swiss motorways. This is a geodata-set including geographical ubications of all national roads in Switzerland and corresponding attributes like name, etc.   
+For plotting and background checks we also load the street-network of Swiss motorways. This is a geodata-set which includes geographical locations of all national roads in Switzerland and corresponding attributes like name, etc.   
 The `sf`-library allows to directly read from the `.gdb` file format. 
 
 ````{r, echo=FALSE}
@@ -140,8 +139,8 @@ accidents_df %>%
        fill = "Accident Severity") + 
   scale_y_continuous(breaks = seq(0, 20000, 1500)) +
   scale_x_continuous(breaks = seq(2011, 2021, 1)) +
-  scale_fill_manual(values = c("black", "sienna3", "darkred"))
-  #stat_smooth(method = "lm", se = FALSE)
+  scale_fill_manual(values = c("black", "darkred", "sienna3"))
+  
                      
   
 ```
@@ -180,7 +179,6 @@ The first thig that draws our attention is that the median drops significantly i
 We would, however, expect to see a spike in traffic during the month of June, or at least the summer months in general. 
 Based on this graph, we do see a small spike in the median of the amount of traffic, but it is difficult to tell whether the spike could be causing the higher amount of accidents or not. We therefore need to perform a statistical analysis to confirm or reject our thesis. 
   
-**2020 should not really be considered (pandemic)**
 **question, hope it isnt stupid. Why are we looking at total number of accidents vs median of traffic? to draw a comparison, shouldnt we look at total number and then  a percentage or something? again, sorry if it doestn make sense.** - **I would argue that this is just a very general visual overview to get a first impression. So the unit does not really matter, its just ups and downs - the statistical model is what we do below right?**
 
 **I would still put the following chapter either before or after, but it really doesn't matter.** 
@@ -248,8 +246,8 @@ nrow(accidents_motorways) / nrow(accidents_df)
 
 ````
 
-As we did for the traffic data,  we also convert our accident data into simple features with the given coordinates. Note: these are also in Swiss LV95.
-**sorry here I don't understand what you are sayin, but I think there is a typo** 
+As we did for the traffic data, we also convert our accident data into simple features with the given coordinates. Note: these are also in Swiss LV95.
+
 ````{r}
 
 accidents_as_sf <-
@@ -273,6 +271,8 @@ ggplot() +
 
 ````
 This is confirmed by the following code:
+
+
 ````{r}
 
 idx = st_nearest_feature(accidents_as_sf[5, ], national_roads_geodata)
@@ -294,7 +294,7 @@ accidents_as_sf$road_segment <-
 
 ````
 
-As a second step we want to find the nearest traffic counter. This allows us to approximate the amount of traffic at the given accident location during the given time period (month/year.) We apply the same procedure as above, but now finding the nearest point in the traffic data-set. Again, we pick the same accident as before (black dot) and its nearest traffic counters (red:)
+As a second step, we want to find the nearest traffic counter. This allows us to approximate the amount of traffic at the given accident location during the given time period (month/year.) We apply the same procedure as above, but now finding the nearest point in the traffic data-set. Again, we pick the same accident as before (black dot) and its nearest traffic counters (red:)
 
 ````{r}
 
@@ -307,6 +307,7 @@ ggplot() +
 ````
   
 We can further confirm this by using this method. 
+
 ````{r}
 
 idx = st_nearest_feature(accidents_as_sf[5, ], traffic_as_sf)
@@ -352,7 +353,8 @@ plotly::ggplotly(plt)
 
 ## Modelling Traffic vs. Accidents
 
-In order to model/group accidents by month/year, we match it with the respective traffic data:
+In order to model/group accidents by month/year, we match them with the respective traffic data:
+
 ```{r , echo=FALSE}
 
 motorway_accidents_per_month <- as.data.frame(accidents_as_sf) %>% 
@@ -408,14 +410,34 @@ cor(model_data$AvgTrafficPerDay, model_data$NumberOfAccidents)
  
 ```
 
-## interpreting the regression model... (I just think we need to add some interpretation in 2-3 sentences as in statistics)
+##The Regression Model 
+
+To test our hypothesis that a larger number of cars leads to a higher number of accidents we perform a regression model. As we can see from the graph above, the regression line seems to show a positive correlation.
+Our null hypothesis (H0) is that there is no significant relationship between the amount of cars and the number of accidents, while our alternative hypothesis (H1) is that there is a significant relationship between the two variables. 
+
+Let's look at the output of the regression model and see what the numbers tell us.
+
 
 ```{r}
 traffic_accident_model <- lm(NumberOfAccidents ~ AvgTrafficPerDay, data = model_data )
 summary(traffic_accident_model)
 ```
+The _Residuals_ section shows the minimum, first quartile, median, third quartile, and maximum values of the model residuals. Residuals are the differences between the actual values and the predicted values from the model. This gives us an idea of the variability of the model error.
 
-This is significant at ... blablabla ... for every nth car passing there is an accident... blablabla.
+The _Coefficients_ table shows the estimated regression coefficients for the intercept and the predictor variable AvgTrafficPerDay. The intercept is the predicted value of the response variable when the amount of cars detected  is equal to zero, and the coefficient of the estimate for **AvgTrafficPerDay** is the estimated change in the response variable for a one-unit increase in the predictor variable. Both coefficients are statistically significant because the p-values are well below the significance level of 0.05, which means we can reject H0.
+
+
+The _Residual standard error_ tells us that the model fits the data, because it is low. 
+
+
+The _Multiple R-squared_ refers to the percentage of variance explained by the mode. In this case, the predictor variable is **AvgTrafficPerDay**, and the R-squared value of 0.09221 indicates that only 9.2% of the variance in the response variable is explained by traffic.
+
+A larger _F-statistic_ and smaller _p-value_ indicate that the model is a good fit for the data. In this case, the F-statistic is 252.5 with a very small p-value (very close to 0), which indicates that the model is statistically significant.
+
+Overall, this model shows that there is a significant positive relationship between the , but the model explains only a small proportion of theamount of cars detected and the amount of accidents recorded, however, only a small portion of this is explained by this model. 
+
+Overall, it is clear that there is a relationship between traffic and amount of accidents, but there appear to be more variables that have an impact on accidents, and therefore a deeper analysis is required to understand when and where it is safer to drive in Switzerland. 
+
 
 ## Rush Hour Accidents
 
@@ -427,11 +449,10 @@ The following heatmap answers the questions in a very straightforward manner. If
 - between _6A.M. and 8A.M_
 - between _4P.M and 6P.M._ 
 
-During the weekend (Saturday and Sunday, ) there isn't a clear time frame in which more accidents happen, but they are mainly happening in the late morning to mid afternoon.
+During the weekend (Saturday and Sunday,) there isn't a clear time frame in which more accidents happen, but they are mainly happening in the late morning to mid afternoon.
 
-This shows us that most accidents happen when people are on their way to and from work, being that the formerly identified time frames coincide quite accurately with the limits of the workday in Switzerland. On the other hand, during the weekend it is clear that people tend to leave the house either later or not all in bulk as they do during the week, therefore making it difficult to find a clear pattern. 
+This shows us that most accidents happen when people are on their way to and from work, being that the formerly identified time frames coincide quite accurately with the limits of the workday in Switzerland. On the other hand, during the weekend it is clear that people tend to leave the house either later or not all in bulk as they do during the week, therefore making it difficult to find a clear pattern. However, compared to weekdays, there are more accidents from midnight to 5A.M. on the weekend, something that already starts on Friday after work. 
 
-**Mel change the ticks on this graph to include more hours**
 
 ````{r heatmap_of_accidents, echo = FALSE}
 
@@ -443,8 +464,10 @@ accidents_df[,c("AccidentUID", "AccidentWeekDay", "AccidentHour")] %>%
   # pull(AccidentWeekDay_f) %>% levels() %>% dput
   ggplot(aes(x = AccidentHour, y = AccidentWeekDay_f, fill = Count)) +
     geom_raster() +
-    labs(x = 'Hour', y = "Day of  the Week", title = "Most Accidents happen on weekdays in the evening") +
-    theme_minimal()
+    labs(x = 'Hour', y = "Day", title = "Distribution of Accidents during the Day") +
+    theme_minimal() +
+  scale_x_continuous(breaks = seq(0,24,1)) + 
+  scale_fill_gradient(low= "pink1", high= "darkred")
 
 ````
 
@@ -566,14 +589,15 @@ accidents_df %>%
 map_acc <- accidents_df %>%
   filter(AccidentSeverityCategory == "as1") %>%
   ggplot(aes(x = AccidentLocation_CHLV95_E, y = AccidentLocation_CHLV95_N, label = GDENAMK, color = RoadType_en)) +
-    geom_point(alpha = 1) +
-    labs(x = 'E', y = "N", title = "Map of fatal accidents") +
+    geom_point(alpha = 0.2) +
+    labs(x = 'E', y = "N", title = "Map of Fatal Accidents") +
     theme_minimal() +
     coord_fixed()
 
 plotly::ggplotly(map_acc)
 
 ````
+**I dislike this map above, I think we can get rid of it. if you agree, feel free to remove it**
 
 
 ```{r}
@@ -587,6 +611,7 @@ ggplot(data = accidents_df, aes(y = AccidentHour, fill = AccidentSeverityCategor
   labs(x = "Number of accidents")  
 
 ```
+**this graph can go in the main text as well**
 
 ```{r}
 
@@ -617,13 +642,17 @@ ggplot(data = model_data, mapping = aes(x = AccidentHour, y = count, group_by = 
 ```
 ````{r}
 
-unique(accidents_df$AccidentType_de)
-
+unique(accidents_df$AccidentType_en)
 ggplot(data = accidents_df) +
-  geom_bar(mapping = aes(x = AccidentType_de, fill = AccidentType_de)) +
-  facet_wrap(~RoadType_en, ncol = 2)
+  geom_bar(mapping = aes(x = AccidentType_en, fill = AccidentType_en )) +
+  theme(axis.text.x = element_text(face="bold", color="#993333", 
+                           size=5, angle=45), legend.position = "none") +
+  scale_x_discrete(name = "Accident Type") +
+  scale_y_continuous(name = " Number of Accidents")
+  #facet_wrap(~RoadType_en, ncol = 2)
 
 ````
+**here I will write something about the graph above cuz its pretty and we need stuff**
 
 ````{r, echo = FALSE}
 
@@ -636,3 +665,4 @@ accidents_df %>% mutate(AccidentWeekDay_f=factor(x = AccidentWeekDay,levels = re
     theme(legend.position = "none") + 
     labs(title = "Most accidents happen on weekdays after work", y = "Day of accident", x = "Hour of accident")
 ````
+**this would be cool to have close to the heatmap**
