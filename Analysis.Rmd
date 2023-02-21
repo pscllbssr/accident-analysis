@@ -475,11 +475,11 @@ With further data, these questions could be easily answered.
 
 unique(accidents_df$AccidentType_en)
 ggplot(data = accidents_df) +
-  geom_bar(mapping = aes(x = AccidentType_en, fill = AccidentType_en )) +
-  theme(axis.text.x = element_text(face="bold", color="#993333", 
-                           size=5, angle=45), legend.position = "none") +
-  scale_x_discrete(name = "Accident Type") +
-  scale_y_continuous(name = " Number of Accidents")
+  geom_bar(mapping = aes(y = AccidentType_en, fill = AccidentType_en )) +
+  theme(axis.text.y = element_text(face="bold", 
+                           size=8, angle=0), legend.position = "none") +
+  scale_y_discrete(name = "Accident Type") +
+  scale_x_continuous(name = " Number of Accidents")
   #facet_wrap(~RoadType_en, ncol = 2)
 
 ````
