@@ -4,11 +4,11 @@ subtitle: "Based on data from 2011-2021"
 author: "Mel Fioravanti & Pascal Albisser"
 date: "2023-02-22"
 output:
-  pdf_document:
-    toc: yes
   html_document:
     toc: yes
     toc_float: TRUE
+  pdf_document:
+    toc: yes
 always_allow_html: yes
 ---
 
@@ -68,7 +68,7 @@ As for the traffic we turn to the Federal Roads Office FEDRO. The office is oper
 ![An automatic traffic counting station (image: astra.admin.ch)](img/astra_counter.png){width=50%}
 
 
-The data on traffic was quite messy, and all in separate yearly files with, each with different structure. Therefore, the data needed to be merged and cleaned so that it could be used for our analysis. Some of the preprocessing is done by hand, some of it in the file `./traffic-preprocessing.R`. Here we load our preprocessed data set. 
+The data on traffic was quite messy, and all in separate yearly files with, each with different structure. Therefore, the data needed to be merged and cleaned so that it could be used for our analysis. Some of the preprocessing is done by hand, some of it in the file `scripts/traffic-preprocessing.R`. Here we load our preprocessed data set. 
 
 ````{r, echo=FALSE}
 
