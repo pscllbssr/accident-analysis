@@ -18,7 +18,7 @@ Despite the widely used railway system, Switzerland still heavily relies on tran
 
 This analysis aims to provide clear and relevant information on some factors that contribute to a higher risk of accidents. 
 
-```{r, echo=FALSE, message=FALSE, results= FALSE}
+```{r, echo=FALSE, message=FALSE, results= FALSE, warning= FALSE}
 # load libraries
 library(ggplot2)
 library(magrittr)
