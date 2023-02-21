@@ -4,11 +4,11 @@ subtitle: "Based on data from 2011-2021"
 author: "Mel Fioravanti & Pascal Albisser"
 date: "2023-02-22"
 output:
+  pdf_document:
+    toc: yes
   html_document:
     toc: yes
     toc_float: TRUE
-  pdf_document:
-    toc: yes
 always_allow_html: yes
 ---
 
@@ -26,6 +26,7 @@ library(tidyverse)
 library(knitr)
 library(sf)
 library(data.table)
+library(readxl)
 ```
 
 # The Data Sets
@@ -36,9 +37,7 @@ With this analysis, our aim is to give an overview of the traffic situation in S
 
 In order to establish whether there are external factors that influence the amount of car accidents in Switzerland, we analyze two data sets: 
 the first (accidents) provides us with data from 2011 to 2021, and it is comprised of various factors relating to each accident. 
-
-Load the accidents data set, already downloaded. 
-Source: https://data.geo.admin.ch/ch.astra.unfaelle-personenschaeden_alle/
+The data is available at the [federal geoinformation platform](https://data.geo.admin.ch/ch.astra.unfaelle-personenschaeden_alle/) and consists of a single csv. We downloaded the data beforhand and load it directly from `data/`-folder. 
 
 Here we have the following: 
 
@@ -59,7 +58,7 @@ This data set contains information about the location of traffic detectors throu
 ```{r setup, echo=FALSE}
 
 accidents_df <- data.frame(fread("data/RoadTrafficAccidentLocations.csv"))
-kable(head(accidents_df[,c('AccidentType_en', 'AccidentSeverityCategory_en', 'RoadType_en', 'AccidentWeekDay', 'AccidentMonth', 'AccidentYear')]))
+kable(head(accidents_df[,c('AccidentType_en', 'AccidentSeverityCategory_en', 'RoadType_en', 'AccidentWeekDay', 'AccidentMonth', 'AccidentYear')]), caption = "Accident Dataset (6 out of 36 columns")
 ```
 
 ## Traffic
@@ -97,7 +96,7 @@ national_roads_geodata <-
 ````
 
 ````{r}
-kable(head(national_roads_geodata))
+kable(head(national_roads_geodata %>% select(-ID, -Eigentuemer, -Positionscode, -SHAPE_Length)))
 ````
 
 
@@ -565,31 +564,39 @@ Zurich towers over the other municipalities with 13354 accidents.
 Not only are there more accidents in total, but, as we could probably expect, there are also the most fatalities. 
 With 77, it is more than double the second municipality in the list, which only has 33. 
 
+```{r, echo = FALSE, message = FALSE}
+
+municipalities <- read_excel("data/municipalities/be-t-00.04-agv-01.xlsx", 
+    sheet = "GDE")
+accidents_df <- left_join(accidents_df, municipalities[,c("GDENR", "GDENAMK")], by = join_by("MunicipalityCode" == "GDENR"))
+
+```
+
+
 
 `````{r, echo = FALSE }
 
-library(knitr)
-
 accidents_df %>% 
   group_by(MunicipalityCode) %>% 
-  summarise(total = n()) %>% 
-  arrange(desc(total)) %>% 
+  summarise(Municipality = last(GDENAMK),
+            Total = n()) %>% 
+  arrange(desc(Total)) %>% 
   slice(1:10) %>% 
-  kable(caption = "Most Dangerous Municipalites by Number of Accidents")
+  kable(caption = "Most Dangerous Municipalites by Number of Accidents", col.names = c("BFS-Nr", "Municipality", "Nr. of accidents"), align = "lll", )
 
 
 `````
 
 `````{r , echo = FALSE}
 
-
 accidents_df %>% 
   filter(AccidentSeverityCategory == "as1") %>% 
   group_by(MunicipalityCode) %>% 
-  summarise(total = n()) %>% 
-  arrange(desc(total)) %>% 
+  summarise(Municipality = last(GDENAMK),
+            Total = n()) %>% 
+  arrange(desc(Total)) %>% 
   slice(1:10) %>% 
-  kable(caption = "Municipalities with most Fatalities")
+  kable(caption = "Municipalities with most Fatalities", col.names = c("BFS-Nr", "Municipality", "Nr. of fatal accidents"), align = "lll")
 `````
 
 
