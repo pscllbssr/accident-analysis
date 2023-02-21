@@ -14,10 +14,11 @@ always_allow_html: yes
 
 # Introduction
 
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.
+Despite the widely used railway system, Switzerland still heavily relies on transportation by car. It is therefore important to know that whenever we travel by car, there is a higher risk of getting in an accident than when travelling by train. 
 
+This analysis aims to provide clear and relevant information on some factors that contribute to a higher risk of accidents. 
 
-```{r, echo=FALSE, message=FALSE}
+```{r, echo=FALSE, message=FALSE, results= FALSE}
 # load libraries
 library(ggplot2)
 library(magrittr)
@@ -27,7 +28,7 @@ library(sf)
 library(data.table)
 ```
 
-# The data sets
+# The Data Sets
 
 With this analysis, our aim is to give an overview of the traffic situation in Switzerland over the last decade and to identify interesting trends, in order to isolate the factors that can predict the probability of having a car accident, if any can be extrapolated from the two following data sets.
 
@@ -164,15 +165,10 @@ accidents_df %>%
   scale_x_discrete( labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")) +
   scale_y_continuous(breaks = seq(0, 21000, 3000)) 
 
-# here is the code to eliminate the legend. I cant make it work tho 
-#theme(legend.position = none)
   
  
   
 ```
-
-
-
 
 ## Correlation Traffic - Accidents
 
@@ -215,7 +211,7 @@ traffic %>%
 
 ````
 
-### Spatial Joins - Chapter of choice
+### Spatial Joins - Chapter of Choice
 
 So far we compared amount of traffic to number of accidents on a very general level. But what if we wanted to look at this relationship on a more granular level? As we have the exact location of each accident and each traffic measurement we should be able to do this for each street/sector. But in order to do so we need to have a corresponding measurement of traffic for each accident, but as of now there is no link between them.
   
@@ -271,7 +267,7 @@ For example: The accident given on the following map (black dot) should map to t
 ggplot() + 
   geom_sf(data = accidents_as_sf[5, ]) +
   geom_sf(data = national_roads_geodata[national_roads_geodata$Strassennummer == "N1",], mapping = aes(color = Segmentname)) +
-  labs(title = "Accident #5 on motorway N1", x = "East", y = "North")
+  labs(title = "Accident #5 on Motorway N1", x = "East", y = "North")
 
 ````
 
@@ -429,7 +425,7 @@ A larger _F-statistic_ and smaller _p-value_ indicate that the model is a good f
 
 Overall, this model shows that there is a significant positive relationship between the amount of cars detected and the number of accidents, but the model explains only a small portion of this relationship.
 
-Overall, it is clear that there is a relationship between traffic and amount of accidents, but there appear to be more variables that have an impact on accidents, and therefore a deeper analysis is required to understand when and where it is safer to drive in Switzerland. 
+It is clear that there is a relationship between traffic and amount of accidents, but there appear to be more variables that have an impact on accidents, and therefore a deeper analysis is required to understand when and where it is safer to drive in Switzerland. 
 
 Some other variables that could be included in the model for further analysis are: 
 
@@ -461,7 +457,7 @@ accidents_df %>%
   
 ```
 
-## Most comon Types of Accident
+## Most Common Types of Accident
 
 While it is true that all accidents are bad, let's have a look at the most common types of accidents. The Bar graph below shows us the amount of accidents per type.
 
@@ -476,7 +472,7 @@ It is quite surprising to see that most accidents happen alone, and it would an 
 With further data, these questions could be easily answered.
 
 
-````{r, echo = FALSE}
+````{r, echo = FALSE, results= FALSE, message = FALSE}
 
 unique(accidents_df$AccidentType_en)
 ggplot(data = accidents_df) +
@@ -554,7 +550,8 @@ still, we can see that rush hour is the one with the highest number in all three
 ggplot(data = accidents_df, aes(y = AccidentHour, fill = AccidentSeverityCategory_en)) +
   geom_bar() +
   facet_wrap(~ AccidentSeverityCategory_en, scales = "free") +
-  labs(x = "Number of accidents", y = "Hour")  
+  labs(x = "Number of accidents", y = "Hour") +
+  scale_fill_manual(values = c("black", "sienna3", "darkred"))
 
 ```
 
@@ -567,10 +564,6 @@ In order to identify the most dangerous place to live in Switzerland, as it rela
 Zurich towers over the other municipalities with 13354 accidents.
 Not only are there more accidents in total, but, as we could probably expect, there are also the most fatalities. 
 With 77, it is more than double the second municipality in the list, which only has 33. 
-
-
-**I cannot, for the life of me, find the damn corresponding cities to the municipality number**
-
 
 
 `````{r, echo = FALSE }
